@@ -1,22 +1,21 @@
 import sys
 import os
-import json 
+import json
 
-# --- GESTIÓN DE RUTAS PARA EXE Y SCRIPT ---
+# --- GESTIÓN DE RUTAS (Modo .EXE vs .PY) ---
 if getattr(sys, 'frozen', False):
-    # SI ESTAMOS EN MODO .EXE:
-    # 1. La base de datos (JSON) se guarda AL LADO del ejecutable (para que persista)
+    # Si estamos en el .EXE:
+    # 1. La base de datos se guarda JUNTO al ejecutable (para que no se borre)
     BASE_DIR = os.path.dirname(sys.executable)
-    # 2. Los recursos (Logo) se buscan ADENTRO del paquete temporal (sys._MEIPASS)
+    # 2. El Logo se busca ADENTRO del archivo empaquetado (sys._MEIPASS)
     RESOURCE_DIR = sys._MEIPASS
 else:
-    # SI ESTAMOS EN MODO SCRIPT (Python normal):
+    # Si estamos en Python normal:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     RESOURCE_DIR = BASE_DIR
 
-# Rutas definitivas
-# Asegúrate que tu imagen se llame EXACTAMENTE así en tu carpeta
-RUTA_LOGO_ESCUELA = os.path.join(RESOURCE_DIR, "logo_placeholder.png") 
+# --- NOMBRES EXACTOS DE TUS ARCHIVOS ---
+RUTA_LOGO_ESCUELA = os.path.join(RESOURCE_DIR, "rz-logo.png") 
 ARCHIVO_DB = os.path.join(BASE_DIR, "base_datos_alumnos.json")
 
 from PyQt6 import QtWidgets, QtGui, QtCore
@@ -30,18 +29,17 @@ from PyQt6.QtGui import (
     QImage, QPalette, QDragEnterEvent, QDropEvent, QFontMetrics
 )
 from PyQt6.QtCore import Qt, pyqtSignal
-
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import mm
 
-# --- CONFIGURACIÓN ---
+# MEDIDAS
 CARD_W = 1000
 CARD_H = 600
 PRINT_W_MM = 84
 PRINT_H_MM = 52
 
-# --- FUENTES ---
+# FUENTES
 def get_playful_font(size, weight=QFont.Weight.Normal):
     playful_families = ["Comic Sans MS", "Segoe Print", "Ink Free", "Kristen ITC"]
     for family in playful_families:
@@ -49,7 +47,7 @@ def get_playful_font(size, weight=QFont.Weight.Normal):
         if font.exactMatch(): return font
     return QFont("Arial Rounded MT Bold", size, weight)
 
-# --- DRAG & DROP ---
+# DRAG & DROP
 class DropLabel(QLabel):
     imageDropped = pyqtSignal(str)
     def __init__(self, parent=None):
@@ -64,7 +62,7 @@ class DropLabel(QLabel):
         urls = event.mimeData().urls()
         if urls: self.imageDropped.emit(urls[0].toLocalFile())
 
-# --- DIBUJO ---
+# PINTOR
 class CardPainter:
     @staticmethod
     def fit_font_to_width(text, font, max_width):
@@ -112,7 +110,6 @@ class CardPainter:
         pixmap = QPixmap(CARD_W, CARD_H); pixmap.fill(Qt.GlobalColor.white)
         painter = QPainter(pixmap); painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        # Fondo
         path_h = QPainterPath(); path_h.moveTo(0, 0); path_h.lineTo(CARD_W, 0); path_h.lineTo(CARD_W, 130)
         path_h.cubicTo(CARD_W*0.7, 190, CARD_W*0.3, 70, 0, 160); path_h.closeSubpath()
         grad = QtGui.QLinearGradient(0, 0, 0, 180); grad.setColorAt(0, C_AZUL_CLARO.lighter(120)); grad.setColorAt(1, C_AZUL_CLARO)
@@ -122,19 +119,16 @@ class CardPainter:
         path_f.cubicTo(CARD_W*0.6, CARD_H-180, CARD_W*0.4, CARD_H-50, 0, CARD_H-130); path_f.closeSubpath()
         painter.setBrush(QBrush(C_AZUL_CLARO.lighter(130))); painter.drawPath(path_f)
 
-        # Logo
         if os.path.exists(RUTA_LOGO_ESCUELA):
             logo = QPixmap(RUTA_LOGO_ESCUELA).scaled(140, 140, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             painter.drawPixmap(30, 20, logo)
         else:
             painter.setPen(QPen(Qt.GlobalColor.gray, 2, Qt.PenStyle.DashLine)); painter.setBrush(Qt.BrushStyle.NoBrush); painter.drawRect(30, 20, 140, 140)
 
-        # Titulo
         font_tit = get_playful_font(60, QFont.Weight.Bold)
         painter.setFont(font_tit); painter.setPen(C_AZUL_OSCURO)
         painter.drawText(CARD_W - 405, 115, "Biblioteca"); painter.setPen(Qt.GlobalColor.white); painter.drawText(CARD_W - 410, 110, "Biblioteca")
 
-        # Foto
         px, py, pw, ph = 50, 190, 280, 350
         painter.setPen(QPen(C_AZUL_OSCURO, 7)); painter.setBrush(Qt.BrushStyle.NoBrush); painter.drawRect(px, py, pw, ph)
         if data.get("photo_path") and os.path.exists(data["photo_path"]):
@@ -142,7 +136,6 @@ class CardPainter:
             scaled = img.scaled(pw-7, ph-7, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.SmoothTransformation)
             painter.drawImage(px+4, py+4, scaled)
 
-        # Datos
         tx = 370; ty = 240
         painter.setFont(get_playful_font(26)); painter.setPen(C_AZUL_CLARO.darker(115)); painter.drawText(tx, ty, "Nombre del Alumno:")
         ty += 70
@@ -168,11 +161,11 @@ class CardPainter:
         painter.end()
         return pixmap
 
-# --- VENTANA ---
+# VENTANA
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Sistema Credenciales - v9.0 Final")
+        self.setWindowTitle("Sistema Credenciales - v10.0 Final")
         self.students = []; self.photo_path = None; self.is_dark_mode = False 
         app = QApplication.instance(); app.setStyle("Fusion")
         self.setup_ui(); self.apply_theme_light(); self.load_data_from_db(); self.showMaximized()
@@ -281,14 +274,13 @@ class MainWindow(QMainWindow):
         gra = self.input_grado.text().strip().upper()
         gru = self.input_grupo.text().strip().upper()
         
-        # VALIDACIÓN MEJORADA: Todo obligatorio excepto folio
         if not n or not gra or not gru or not self.photo_path:
             QMessageBox.warning(self, "Faltan Datos", "Por favor llena: Nombre, Grado, Grupo y selecciona una Foto.")
             return
 
         st = {
             "id": len(self.students) + 1000, "name": n,
-            "grade": gra, "group": gru, # SE CONVIERTEN A MAYUSCULA (a -> A)
+            "grade": gra, "group": gru,
             "folio": self.input_folio.text().upper(), "photo_path": self.photo_path
         }
         self.students.append(st); self.add_row_to_table(st); self.save_data_to_db()
@@ -307,7 +299,7 @@ class MainWindow(QMainWindow):
         sel = [next((x for x in self.students if x["id"] == self.table.item(i,0).data(Qt.ItemDataRole.UserRole)), None) for i in range(self.table.rowCount()) if self.table.item(i,0).checkState() == Qt.CheckState.Checked]
         if not sel: return QMessageBox.warning(self, "Ojo", "Selecciona alumnos")
         
-        # AQUI ESTA EL CAMBIO: Nombre sugerido por defecto
+        # Nombre por defecto: Credenciales_Biblioteca.pdf
         p, _ = QFileDialog.getSaveFileName(self, "Guardar PDF", "Credenciales_Biblioteca.pdf", "PDF (*.pdf)")
         if not p: return
 
