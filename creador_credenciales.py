@@ -2,9 +2,21 @@ import sys
 import os
 import json 
 
-# --- RUTA AUTOMÁTICA ---
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-RUTA_LOGO_ESCUELA = os.path.join(BASE_DIR, "rz-Logo.png")
+# --- GESTIÓN DE RUTAS PARA EXE Y SCRIPT ---
+if getattr(sys, 'frozen', False):
+    # SI ESTAMOS EN MODO .EXE:
+    # 1. La base de datos (JSON) se guarda AL LADO del ejecutable (para que persista)
+    BASE_DIR = os.path.dirname(sys.executable)
+    # 2. Los recursos (Logo) se buscan ADENTRO del paquete temporal (sys._MEIPASS)
+    RESOURCE_DIR = sys._MEIPASS
+else:
+    # SI ESTAMOS EN MODO SCRIPT (Python normal):
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    RESOURCE_DIR = BASE_DIR
+
+# Rutas definitivas
+# Asegúrate que tu imagen se llame EXACTAMENTE así en tu carpeta
+RUTA_LOGO_ESCUELA = os.path.join(RESOURCE_DIR, "logo_placeholder.png") 
 ARCHIVO_DB = os.path.join(BASE_DIR, "base_datos_alumnos.json")
 
 from PyQt6 import QtWidgets, QtGui, QtCore
